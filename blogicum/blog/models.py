@@ -67,7 +67,6 @@ class Post(BaseModel):
         ' можно делать отложенные публикации.')
     author = models.ForeignKey(
         User,
-        related_name='posts',
         on_delete=models.CASCADE,
         verbose_name='Автор публикации'
     )
@@ -76,14 +75,12 @@ class Post(BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='posts',
         verbose_name='Местоположение'
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='posts',
         verbose_name='Категория'
     )
     image = models.ImageField(
@@ -95,7 +92,8 @@ class Post(BaseModel):
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = tuple(['-pub_date'],)
+        ordering = tuple(['-pub_date',])
+        default_related_name = 'posts'
 
     def __str__(self):
         return self.title
@@ -104,14 +102,24 @@ class Post(BaseModel):
 class Comment(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, null=True,
-        verbose_name='Автор комментария'
+        verbose_name='Автор комментария',
     )
     post = models.ForeignKey(
-        Post, related_name='comments', on_delete=models.CASCADE, null=True)
+        Post,
+        on_delete=models.CASCADE,
+        null=True,
+        verbose_name='Пост')
     text = models.TextField(
-        verbose_name='Текст'
+        verbose_name='Текст комментария'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Добавлено')
+
+    class Meta:
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+        default_related_name = 'comments'
 
     def __str__(self):
         return self.text
