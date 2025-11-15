@@ -92,7 +92,7 @@ class Post(BaseModel):
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = tuple(['-pub_date',])
+        ordering = ('-pub_date',)
         default_related_name = 'posts'
 
     def __str__(self):

@@ -161,3 +161,4 @@ blogicum/pages/tests.py
 blogicum/core/tests.py
 blogicum/core/admin.py
 blogicum/core/views.py
+blogicum/blog/utils.py

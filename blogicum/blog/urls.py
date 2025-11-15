@@ -1,6 +1,5 @@
 from django.urls import path, include
 
-
 from . import views
 
 
@@ -11,15 +10,15 @@ post_urls = [
          views.PostDetailView.as_view(), name='post_detail'),
     path('<int:post_id>/edit/',
          views.PostUpdateView.as_view(), name='edit_post'),
-    path('<post_id>/delete/',
+    path('<int:post_id>/delete/',
          views.PostDeleteView.as_view(), name='delete_post'),
     path('create/',
          views.PostCreateView.as_view(), name='create_post'),
-    path('<post_id>/comment/',
+    path('<int:post_id>/comment/',
          views.AddCommentView.as_view(), name='add_comment'),
-    path('<post_id>/edit_comment/<comment_id>/',
+    path('<int:post_id>/edit_comment/<comment_id>/',
          views.EditCommentView.as_view(), name='edit_comment'),
-    path('<post_id>/delete_comment/<comment_id>/',
+    path('<int:post_id>/delete_comment/<comment_id>/',
          views.DeleteCommentView.as_view(), name='delete_comment')
 ]
 
