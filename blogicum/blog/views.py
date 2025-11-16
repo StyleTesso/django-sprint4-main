@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.views.generic import (
     ListView, CreateView, UpdateView, DeleteView, DetailView)
 from django.shortcuts import get_object_or_404, redirect
@@ -19,32 +20,26 @@ class OnlyAuthorMixin(UserPassesTestMixin):
     """Mixin для проверки прав автора."""
 
     def test_func(self):
-        post = self.get_object()
+        object = self.get_object()
         user = self.request.user
-        is_author = post.author == user
 
-        if is_author:
-            return True
-        return False
+        return object.author == user
 
     def handle_no_permission(self):
         """Определяем поведение в зависимости от типа ошибки."""
-        if not self.request.user.is_authenticated:
-            return redirect('login')
-        else:
-            return redirect(reverse(
-                'blog:post_detail', kwargs={'post_id': self.kwargs['post_id']}
-            ))
+        return redirect(reverse(
+            'blog:post_detail', kwargs={'post_id': self.kwargs['post_id']}
+        ))
 
 
 def queryset_pattern(
-        add_filter=False, category_object=None,
-        add_comments=False, add_category_filter=False):
+        add_filter=False, add_comments=False):
     queryset = Post.objects.select_related(
         'author',
         'category',
         'location'
     )
+
     """
     Функция является шаблоном для получения QuerySet,
     в зависимости от требований.
@@ -56,9 +51,6 @@ def queryset_pattern(
             pub_date__lte=timezone.now(),
             category__is_published=True,
         )
-        if add_category_filter:
-            # Добавление фильтра по категории.
-            queryset = queryset.filter(category=category_object)
 
     if add_comments:
         # Добавления комментариев.
@@ -118,23 +110,20 @@ class PostDetailView(DetailView):
         либо любой пользователь, если пост опубликован.
         """
         post_id = self.kwargs.get('post_id')
-        post_creator = get_object_or_404(Post, id=post_id)
-        if post_creator.author == self.request.user:
-            return post_creator
-        post = get_object_or_404(
-            Post, id=post_id,
-            is_published=True,
-            category__is_published=True)
-        if post.pub_date <= timezone.now():
-            return post
+        post = get_object_or_404(Post, id=post_id)
+        if post.author != self.request.user and (
+            not post.is_published or not post.category.is_published
+            or not post.pub_date <= timezone.now()
+        ):
+            raise Http404('Страница не найдена')
+        return post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         post = self.get_object()
-        if post is not None:
-            context['form'] = CommentForm()
-            context['comments'] = post.comments.all().select_related(
-                'author').order_by('created_at')
+        context['form'] = CommentForm()
+        context['comments'] = post.comments.all().select_related(
+            'author').order_by('created_at')
         return context
 
 
@@ -154,10 +143,8 @@ class CategoryPostsView(ListView):
 
     def get_queryset(self):
         return queryset_pattern(
-            category_object=self.get_object_category(),
-            add_category_filter=True,
             add_comments=True,
-            add_filter=True)
+            add_filter=True).filter(category=self.get_object_category())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -193,7 +180,7 @@ class ProfileView(ListView):
         является ли пользователь владельцем профиля.
         """
         if self.request.user == self.get_profile_object():
-            queryset = queryset_pattern().filter(
+            queryset = queryset_pattern(add_comments=True).filter(
                 author=self.get_profile_object())
         else:
             queryset = queryset_pattern(
